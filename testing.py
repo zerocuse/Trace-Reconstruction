@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from solution import recover_graph
+from gptSolution import gpt_recover_graph
 from hamming_distance import calculate_hamming_distance as chd
 
 # Construct Graph
