@@ -1,7 +1,9 @@
 import networkx as nx
+import matplotlib.pyplot as plt
 from solution import recover_graph
 from hamming_distance import calculate_hamming_distance as chd
 
+# Construct Graph
 graph = nx.Graph()
 graph_edges = [
     (0, 1), (0, 2),
@@ -17,6 +19,8 @@ graph_edges = [
     (10, 11)
 ]
 graph.add_edges_from(graph_edges)
+
+# Construct Cascades from Original Graph
 cascades = [
     {
         0: 0,
@@ -59,6 +63,48 @@ cascades = [
     }
 ]
 
+# Establish a recovered graph based on recovered edges
 recovered_graph = recover_graph(cascade_set=cascades)
 
+# OPTIONAL: Print Hamming Distance
 print(chd(graph, recovered_graph))
+
+
+# COMPARING GRAPH vs. RECOVERED GRAPH
+
+# Shared layout for both graphs
+pos = nx.spring_layout(graph, seed=42)
+
+# Create side-by-side plots
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+# Original graph
+nx.draw(
+    graph,
+    pos=pos,
+    ax=axes[0],
+    with_labels=True,
+    node_color='lightblue',
+    edge_color='gray',
+    node_size=800,
+    font_size=10
+)
+axes[0].set_title("Original Graph")
+axes[0].axis('off')
+
+# Recovered graph
+nx.draw(
+    recovered_graph,
+    pos=pos,  # same layout for fair comparison
+    ax=axes[1],
+    with_labels=True,
+    node_color='lightblue',
+    edge_color='gray',
+    node_size=800,
+    font_size=10
+)
+axes[1].set_title("Recovered Graph")
+axes[1].axis('off')
+
+plt.tight_layout()
+plt.show()
