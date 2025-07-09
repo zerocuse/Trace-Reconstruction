@@ -4,7 +4,6 @@ import networkx as nx
 def calculate_hamming_distance(og_graph: nx.Graph, recovered_graph: nx.Graph):
     # Cache total node counts
     n_og = og_graph.number_of_nodes()
-    n_rec = recovered_graph.number_of_nodes()
 
     # Construct adjacency matrices
     og_adj = [[0 for _ in range(n_og)] for _ in range(n_og)]
@@ -12,7 +11,7 @@ def calculate_hamming_distance(og_graph: nx.Graph, recovered_graph: nx.Graph):
         og_adj[u][v] = 1
         og_adj[v][u] = 1
 
-    rec_adj = [[0 for _ in range(n_rec)] for _ in range(n_rec)]
+    rec_adj = [[0 for _ in range(n_og)] for _ in range(n_og)]
     for u, v in recovered_graph.edges:
         rec_adj[u][v] = 1
         rec_adj[v][u] = 1
