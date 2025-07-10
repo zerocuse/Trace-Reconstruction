@@ -2,7 +2,25 @@ import networkx as nx
 from testing import test
 from simulation import simulate
 
-# BIPARTITE GRAPH
+# ANY GRAPH -------------------------------------------------------------------------
+graph = nx.Graph()
+graph_edges = [
+    (0, 1), (1, 2), (1, 3), (3, 4), (3, 5), (0, 6), (6, 7), (6, 8),
+    (2, 9), (4, 10), (5, 11), (7, 12), (8, 13), (9, 14)
+]
+graph.add_edges_from(graph_edges)
+cascade_set = [
+    {0: 0, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 1, 7: 2, 8: 2, 9: 3, 10: 4, 11: 4, 12: 3, 13: 3, 14: 4},
+    {3: 0, 1: 1, 0: 2, 4: 1, 5: 1, 2: 2, 6: 3, 7: 4, 8: 4, 9: 3, 10: 2, 11: 2, 12: 5, 13: 5, 14: 4},
+    {6: 0, 0: 1, 1: 2, 7: 1, 8: 1, 3: 3, 2: 3, 4: 4, 5: 4, 9: 4, 10: 5, 11: 5, 12: 2, 13: 2, 14: 5},
+    {2: 0, 1: 1, 0: 2, 3: 2, 4: 3, 5: 3, 9: 1, 6: 3, 7: 4, 8: 4, 10: 4, 11: 4, 12: 5, 13: 5, 14: 2},
+    {12: 0, 7: 1, 6: 2, 0: 3, 1: 4, 3: 5, 4: 6, 5: 6, 2: 5, 8: 3, 13: 4, 9: 6, 14: 7, 10: 7, 11: 7}
+]
+
+# test(graph, cascade_set)
+# simulate(graph, cascade_set, 200)
+
+# BIPARTITE GRAPH ----------------------------------------------------------------------
 bipartite_graph = nx.Graph()
 bipartite_edges = [
     (0, 10), (0, 11),
@@ -42,13 +60,13 @@ bipartite_cascades = [
     }
 ]
 
-test(bipartite_graph, bipartite_cascades)
-simulate(bipartite_graph, bipartite_cascades, 50)
+# test(bipartite_graph, bipartite_cascades)
+# simulate(bipartite_graph, bipartite_cascades, 50)
 
-# 100 NODE GRAPH
+# 100 NODE GRAPH -----------------------------------------------------------------------
 
 
-# CYCLE GRAPH
+# CYCLE GRAPH --------------------------------------------------------------------------
 cycle_graph = nx.cycle_graph(20)
 cycle_cascades = [
     {
@@ -92,10 +110,10 @@ cycle_cascades = [
     }
 ]
 
-test(cycle_graph, cycle_cascades)
-simulate(cycle_graph, cycle_cascades, 50)
+# test(cycle_graph, cycle_cascades)
+# simulate(cycle_graph, cycle_cascades, 50)
 
-# TREE
+# TREE -------------------------------------------------------------------------------------
 tree = nx.Graph()
 tree_edges = [
     (0, 1), (0, 2),          # Root connects to two children
@@ -137,5 +155,5 @@ tree_cascades = [
     }
 ]
 
-test(tree, tree_cascades)
-simulate(tree, tree_cascades, 50)
+# test(tree, tree_cascades)
+# simulate(tree, tree_cascades, 50)
