@@ -59,8 +59,6 @@ nonzero_idx = np.random.choice(n, k, replace=False)
 x_true[nonzero_idx] = np.random.randn(k)
 x_true /= np.linalg.norm(x_true)
 
-print(x_true)
-
 # Random measurement matrix
 A = np.random.randn(m, n)
 
