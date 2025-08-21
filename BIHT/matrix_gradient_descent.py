@@ -33,7 +33,7 @@ def project_binary_symmetric_topk(S, k):
 # ---------- MATRIX BIHT ----------
 
 
-def biht_matrix_slide(A, B, Y, k, iterations=500, eta=None, seed=0):
+def biht_matrix_slide(A, B, Y, k, iterations=500, eta=.01, seed=0):
     rng = np.random.default_rng(seed)
     n = A.shape[1]
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # Run BIHT
     k = int(X_true.sum())  # total number of ones in X_true
-    X_rec = biht_matrix_slide(A, B, Y, k=k, iterations=800, eta=None, seed=0)
+    X_rec = biht_matrix_slide(A, B, Y, k=k, iterations=1000, eta=5, seed=8)
 
     print("\nRecovered X_rec:\n", X_rec)
     acc = np.mean(X_rec == X_true)

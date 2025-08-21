@@ -2,7 +2,7 @@ import numpy as np
 
 
 def sign(x):
-    return np.where(x >= 0, 1, -1)
+    return np.where(x >= 0, 1, 0)
 
 
 def project_binary_symmetric(S):
@@ -36,7 +36,7 @@ def biht_matrix(A, B, Y, iterations=100, eta=0.01):
 
     for t in range(iterations):
         # Gradient step
-        grad = 0.5 * A.T @ (sign(A @ X_hat + B) - Y)
+        grad = 0.5 * A.T @ (sign(A @ X_hat - B) - Y)
 
         # Update and project
         X_hat = project_binary_symmetric(X_hat - eta * grad)
@@ -44,47 +44,43 @@ def biht_matrix(A, B, Y, iterations=100, eta=0.01):
     return X_hat
 
 
-# --- helper ---
-def sign(x):
-    return np.where(x >= 0, 1, -1)
-
 # --- Ground-truth X from a real graph: C4 (cycle on 4 nodes) ---
 # 1—2
 # |  |
 # 4—3
 X_true = np.array([
-    [0,1,0,1],
-    [1,0,1,0],
-    [0,1,0,1],
-    [1,0,1,0]
+    [0, 1, 0, 1],
+    [1, 0, 1, 0],
+    [0, 1, 0, 1],
+    [1, 0, 1, 0]
 ], dtype=float)  # shape (4,4), binary symmetric
 
 # --- Static measurement matrices (no randomness) ---
 A = np.array([
-    [ 1,  0, -1,  2],
-    [ 0,  1,  1, -1],
-    [ 2, -1,  0,  1]
-], dtype=float)                                # shape (m=3, n=4)
+    [1, 0, 0, 0],
+    [1, 1, 0, 0],
+    [1, 1, 1, 0]
+], dtype=float)  # shape (m=3, n=4)
 
 B = np.array([
-    [ 0.1, -0.5,  0.2,  0.0],
-    [-0.3,  0.4, -0.1,  0.2],
-    [ 0.0,  0.1, -0.2,  0.3]
-], dtype=float)                                # shape (m=3, n=4)
+    [0, 1, 1, 2],
+    [0, 1, 1, 2],
+    [0, 1, 1, 2]
+], dtype=float)  # shape (m=3, n=4)
 
 # --- Static 1-bit measurements Y = sign(A @ X_true + B) ---
-AX = A @ X_true                                # (3,4)
-Y  = sign(AX + B)                              # (3,4)
+AX = A @ X_true  # (3,4)
+Y = [
+    [1, 1, 0, 0],
+    [1, 1, 1, 0],
+    [1, 1, 1, 1]
+]
 
 print("X_true:\n", X_true)
 print("\nA:\n", A)
 print("\nB:\n", B)
 print("\nA @ X_true:\n", AX)
 print("\nY = sign(A @ X_true + B):\n", Y)
-# Y equals:
-# [[ 1, -1,  1,  1],
-#  [-1,  1, -1,  1],
-#  [ 1,  1, -1,  1]]
 
 # ===== Run your matrix BIHT here =====
 # Assumes you already defined:
