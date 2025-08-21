@@ -13,7 +13,7 @@ def project_binary_symmetric(S):
     return X
 
 
-def biht_matrix(A, B, Y, iterations=100, eta=0.1):
+def biht_matrix(A, B, Y, iterations=100, eta=0.01):
     """
     Binary Iterative Hard Thresholding (Matrix version)
 
@@ -42,3 +42,58 @@ def biht_matrix(A, B, Y, iterations=100, eta=0.1):
         X_hat = project_binary_symmetric(X_hat - eta * grad)
 
     return X_hat
+
+
+# --- helper ---
+def sign(x):
+    return np.where(x >= 0, 1, -1)
+
+# --- Ground-truth X from a real graph: C4 (cycle on 4 nodes) ---
+# 1—2
+# |  |
+# 4—3
+X_true = np.array([
+    [0,1,0,1],
+    [1,0,1,0],
+    [0,1,0,1],
+    [1,0,1,0]
+], dtype=float)  # shape (4,4), binary symmetric
+
+# --- Static measurement matrices (no randomness) ---
+A = np.array([
+    [ 1,  0, -1,  2],
+    [ 0,  1,  1, -1],
+    [ 2, -1,  0,  1]
+], dtype=float)                                # shape (m=3, n=4)
+
+B = np.array([
+    [ 0.1, -0.5,  0.2,  0.0],
+    [-0.3,  0.4, -0.1,  0.2],
+    [ 0.0,  0.1, -0.2,  0.3]
+], dtype=float)                                # shape (m=3, n=4)
+
+# --- Static 1-bit measurements Y = sign(A @ X_true + B) ---
+AX = A @ X_true                                # (3,4)
+Y  = sign(AX + B)                              # (3,4)
+
+print("X_true:\n", X_true)
+print("\nA:\n", A)
+print("\nB:\n", B)
+print("\nA @ X_true:\n", AX)
+print("\nY = sign(A @ X_true + B):\n", Y)
+# Y equals:
+# [[ 1, -1,  1,  1],
+#  [-1,  1, -1,  1],
+#  [ 1,  1, -1,  1]]
+
+# ===== Run your matrix BIHT here =====
+# Assumes you already defined:
+#   - project_binary_symmetric(S)
+#   - biht_matrix(A, B, Y, iterations=..., eta=...)
+
+np.random.seed(0)  # for reproducible initialization inside BIHT
+X_rec = biht_matrix(A, B, Y, iterations=100, eta=0.1)
+
+print("\nRecovered X_rec:\n", X_rec)
+acc = np.mean(X_rec == X_true)
+print(f"\nEntry-wise accuracy: {acc:.2%}")
