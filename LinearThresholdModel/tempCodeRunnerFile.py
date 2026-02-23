@@ -170,3 +170,5 @@ def display_graph(graph: nx.Graph):
     
 ZACKARY_KARATE_CLUB = testGraph(gp.zkc, gp.zkc_b, gp.zkc_x0)
 LES_MISERABLES = testGraph(gp.lm, gp.lm_b, gp.lm_x0)
+
+infection_graph = generate_cascade_sequence(LES_MISERABLES, 10)
