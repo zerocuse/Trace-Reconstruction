@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import graphs as gp
 from scipy.optimize import linprog
+import pickle
 
 # Class TestGraph
 # --- Given a ground truth graph
@@ -11,17 +12,20 @@ from scipy.optimize import linprog
 
 class testGraph:
     
-    def __init__(self, G_init: nx.graph, b: np.array, x0: np.array):
+    def __init__(self, G_init: nx.graph, b: np.ndarray, x0: np.ndarray):
         
+        # ground state
         self.ground = G_init
-        self.x0 = x0
+        self.x0 = x0.copy()
         
+        # guessing the graph
         self.current = G_init
-        self.x = x0
+        self.x = x0.copy()
         
+        # threshold array
         self.b = b
         
-        self.n = self.ground.number_of_nodes()
+        self.n = G_init.number_of_nodes()
         
         # self.xo = np.empty(self.n)
         # self.b = np.empty(self.n)
@@ -30,6 +34,8 @@ class testGraph:
         #     self.xo[idx] = int(np.random.uniform(-1, 2))
         #     self.b[idx] = int(np.random.uniform(0, len(list(self.ground.neighbors(node)))))
 
+    def reset(self):
+        self.x = self.x0.copy()
 
 
 
@@ -43,14 +49,14 @@ class testGraph:
 
 # infects nodes if the number of neighbors infected (aka =1) is greater than b[i] 
 
-def cascade(g0: testGraph, b: np.array) -> tuple[np.array, bool]:
+def cascade(g0: testGraph) -> tuple[np.ndarray, bool]:
     
     x_new = g0.x.copy()
     
     for i in range(len(g0.x)):
         if g0.x[i] == 0:
             count = sum(1 for node in g0.current.neighbors(i) if g0.x[node] == 1)
-            if count >= b[i]:
+            if count >= g0.b[i]:
                 x_new[i] = 1
     
     updated = not np.array_equal(x_new, g0.x)
@@ -63,14 +69,14 @@ def cascade(g0: testGraph, b: np.array) -> tuple[np.array, bool]:
 # T -> Time Steps (number of the cascade step)
 # M -> Total cascade amount
 
-def generate_cascade_sequence(g0: testGraph, M: int):
+def generate_cascade_sequence(g0: testGraph, M: int) -> np.ndarray:
     
     infection_matrix = [g0.x0.copy()]
     for i in range(M):
-        x_new, updated = cascade(g0, g0.b)
+        x_new, updated = cascade(g0)
         if not updated:
             break
-        infection_matrix.append(x_new)
+        infection_matrix.append(x_new.copy())
     
     return np.array(infection_matrix)
 
@@ -90,7 +96,7 @@ def generate_cascade_sequence(g0: testGraph, M: int):
 # iterates through time steps/cascades from the infection matrix
 # if x_t1 - x_t == 1: the node is newly infected
 
-def build_constraints(infection_matrix: np.ndarray, b: np.array, n: int) -> tuple[int, int, str]:
+def build_constraints(infection_matrix: np.ndarray, b: np.ndarray, n: int) -> tuple[int, int, str]:
     constraints = []
     
     for t in range(len(infection_matrix) - 1):
@@ -106,57 +112,65 @@ def build_constraints(infection_matrix: np.ndarray, b: np.array, n: int) -> tupl
     return constraints
 
 
-# Claude Solver Implementation
+# Count Contradictions
+# -> return a matrix of contradiction counts
+# -> return matrix where matrix[i] = 1 if node i is in contradiction
 
-def solve(g0: testGraph, infection_matrix: np.ndarray, constraints: list) -> np.ndarray:
-    n = g0.n
-    n2 = n * n
+def count_contradicitons(g: testGraph, x_guess: np.ndarray) -> np.ndarray:
+    
+    contradictions = np.zeros(g.n)
+    
+    for i in range(g.n):
+        infected_neighbors = sum(1 for node in g.current.neighbors(i) if x_guess[j] == 1)
+        
+        # xhat thinks its infected when it shouldnt be
+        if (x_guess[i] == 1) and (infected_neighbors < g.b[i]):
+            contradictions[i] = 1
+        
+        # xhat thinks its clean when it should be infected
+        elif (x_guess[i] == 0) and (infected_neighbors >= g.b[i]):
+            contradictions[i] = 1
 
-    # --- Objective: minimise sum(A), i.e. find sparsest graph
-    c = np.ones(n2)
+    return contradictions
 
-    # --- Build inequality constraints
-    A_ub, b_ub = [], []
 
-    for (t, i, condition) in constraints:
-        x_t = infection_matrix[t]
-        row = np.zeros(n2)
+# Greedy LTM Solver
+# Updates xhat iteratively until either max iteration, or no contradictory nodes
 
-        # The sum we care about is: sum_j A[i][j] * x_t[j]
-        # In the flattened vector, A[i][j] lives at index i*n + j
-        row[i*n : i*n + n] = x_t
-
-        if condition == 'infected':
-            # sum >= b[i]  →  -sum <= -b[i]
-            A_ub.append(-row)
-            b_ub.append(-g0.b[i])
-        else:
-            # sum < b[i]  →  sum <= b[i] - 1  (integer assumption)
-            A_ub.append(row)
-            b_ub.append(g0.b[i] - 1)
-
-    A_ub = np.array(A_ub)
-    b_ub = np.array(b_ub)
-
-    # --- Bounds: 0 <= A_ij <= 1 (relaxed binary)
-    bounds = [(0, 1)] * n2
-
-    # --- Solve
-    result = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')
-
-    if not result.success:
-        print("Solver failed:", result.message)
-        return None
-
-    # --- Round to binary and reshape to n x n
-    A_hat = np.round(result.x).reshape(n, n)
-
-    # --- Enforce symmetry and zero diagonal
-    A_hat = np.triu(A_hat, k=1)
-    A_hat = A_hat + A_hat.T
-
-    return A_hat
-
+def greedy_ltm_solver(g: testGraph, x_guess: np.ndarray, max_steps: int=1000):
+    
+    x = x_guess.copy()
+    
+    for step in range(max_steps):
+        
+        contradictions = count_contradicitons(g, x)
+        total = np.sum(contradictions)
+        
+        if total == 0:
+            return x_guess
+        
+        best_reduction = 0
+        best_node = None
+        
+        for i in range(g.n):
+            
+            x_test = x.copy()
+            x_test[i] = 1 - x_test[i]
+            
+            new_total = np.sum(count_contradicitons(g, x_test))
+            reduction = total - new_total
+            
+            if reduction > best_reduction:
+                best_reduction = reduction
+                best_node = i
+            
+        if best_node is None:
+            return x
+                
+        x[best_node] = 1 - x[best_node]
+        
+    return x
+        
 
 
 
