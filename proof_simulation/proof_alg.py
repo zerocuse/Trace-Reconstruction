@@ -1,50 +1,37 @@
 import networkx as nx
 import numpy as np
 import random
+import math
+import matplotlib.pyplot as plt
 
 p = 0.2
-M = 10
+m = 4000
+n = 1000
 
 class TestGraph:
-    
     def __init__(self, G: nx.Graph):
         self.G = G
         self.n = G.number_of_nodes()
-        self.infection_array = np.zeros(self.n)
         self.dmax = max(G.degree(node) for node in G.nodes())
 
 
 def create_seed_nodes(n: int) -> np.ndarray:
-    
-    res = np.zeros(n)
-    
-    for i in range(n):
-        if random.random() <= p:
-            res[i] = 1
-    
-    return res
+    return (np.random.random(n) <= p).astype(float)
 
 
-def cascade_sequence(graph: TestGraph) -> tuple[np.ndarray]:
-    
-    infection_state = create_seed_nodes(graph.n)
-    res = [infection_state]
-    
-    new_infection_state = infection_state.copy()
+def cascade_sequence(graph: TestGraph) -> tuple[np.ndarray, np.ndarray]:
+    t0 = create_seed_nodes(graph.n)
+    t1 = t0.copy()
 
     for node in graph.G.nodes():
-
-        if infection_state[node] == 1:
+        if t0[node] == 1:
             continue
         for neighbor in graph.G.neighbors(node):
-            if infection_state[neighbor] == 1:
-                new_infection_state[node] = 1
+            if t0[neighbor] == 1:
+                t1[node] = 1
                 break
-            
-    res.append(new_infection_state)
-    infection_state = new_infection_state
-    
-    return res
+
+    return t0, t1
 
 
 def generate_cascades(G: TestGraph, M: int) -> list[tuple[np.ndarray, np.ndarray]]:
@@ -54,39 +41,54 @@ def generate_cascades(G: TestGraph, M: int) -> list[tuple[np.ndarray, np.ndarray
 def get_certified_non_edges_from_cascade(t0: np.ndarray, t1: np.ndarray) -> set[tuple[int, int]]:
     seeds = np.where(t0 == 1)[0]
     uninfected = np.where(t1 == 0)[0]
-    ret = set()
-    for v in uninfected:
-        for u in seeds:
-            ret.add((min(u, v), max(u,v)))
-    
-    return ret
+
+    if len(seeds) == 0 or len(uninfected) == 0:
+        return set()
+
+    u, v = np.meshgrid(seeds, uninfected)
+    pairs = np.stack([np.minimum(u, v), np.maximum(u, v)], axis=-1).reshape(-1, 2)
+
+    return set(map(tuple, pairs))
 
 
-def recover_non_edges(G: TestGraph, M: int) -> set[tuple[int, int]]:
-    cascades = generate_cascades(G, M)
-    recovered_non_edges = set()
-    for cascade in cascades:
-        recovered_non_edges.update((get_certified_non_edges_from_cascade(cascade[0], cascade[1])))
-    
-    return recovered_non_edges
+def bound_analysis(G: TestGraph, delta: float) -> float:
+    return (math.log(G.n) / (p * (1-p)**G.dmax)) * math.log(1 / delta)
 
 
-def test_recovery_coverage(G: TestGraph, M: int):
+def generate_random_graph() -> TestGraph:
+    return TestGraph(nx.dense_gnm_random_graph(n, m))
 
-    true_edges = set(G.G.edges())
+
+def plot_recovery_vs_cascades(G: TestGraph, M_values: list[int]):
     true_non_edges = set(nx.non_edges(G.G))
-    recovered_non_edges = recover_non_edges(G, M)
+    max_M = max(M_values)
+    M_set = set(M_values)
 
-    # said edge does not exist, but does
-    false_negatives = recovered_non_edges & true_edges
+    all_cascades = generate_cascades(G, max_M)
+    recovered = set()
+    recovery_rates = {}
 
-    # were not able to rule out edge, but it doesn't exist in graph
-    false_positives = round(len(recovered_non_edges) / len(true_non_edges) * 100, 2)
-    
-    print(f"Will be set() if correct proof for non-edges: {false_negatives},\nTotal Non-Edge Recovery: {false_positives}%")
+    for i, cascade in enumerate(all_cascades):
+        recovered.update(get_certified_non_edges_from_cascade(cascade[0], cascade[1]))
+        if (i + 1) in M_set:
+            recovery_rates[i + 1] = len(recovered) / len(true_non_edges) * 100
+        if recovered >= true_non_edges:
+            for M in M_values:
+                if M not in recovery_rates:
+                    recovery_rates[M] = 100.0
+            break
 
-lm = nx.les_miserables_graph()
-lm = nx.convert_node_labels_to_integers(lm)
-lm = TestGraph(lm)
+    rates = [recovery_rates.get(M, 100.0) for M in M_values]
 
-test_recovery_coverage(lm, M=200)
+    plt.figure(figsize=(10, 6))
+    plt.plot(M_values, rates, marker='o')
+    plt.xlabel('Number of Cascades (M)')
+    plt.ylabel('Non-Edge Recovery Rate (%)')
+    plt.title('Non-Edge Recovery Rate vs Number of Cascades')
+    plt.ylim(0, 105)
+    plt.grid(True)
+    plt.show()
+
+
+M_values = [1, 5, 10, 20, 50, 100, 200]
+plot_recovery_vs_cascades(generate_random_graph(), M_values)
