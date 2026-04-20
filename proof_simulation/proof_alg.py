@@ -5,8 +5,8 @@ import math
 import matplotlib.pyplot as plt
 
 p = 0.2
-m = 4000
-n = 1000
+m = 250
+n = 100
 
 class TestGraph:
     def __init__(self, G: nx.Graph):
@@ -59,26 +59,39 @@ def generate_random_graph() -> TestGraph:
     return TestGraph(nx.dense_gnm_random_graph(n, m))
 
 
+def recover_non_edges(G: TestGraph, M: int) -> set[tuple[int, int]]:
+    cascades = generate_cascades(G, M)
+    recovered_non_edges = set()
+    for cascade in cascades:
+        recovered_non_edges.update((get_certified_non_edges_from_cascade(cascade[0], cascade[1])))
+    
+    return recovered_non_edges
+
+
+def test_recovery_coverage(G: TestGraph, M: int):
+
+    true_edges = set(G.G.edges())
+    true_non_edges = set(nx.non_edges(G.G))
+    recovered_non_edges = recover_non_edges(G, M)
+
+    # said edge does not exist, but does
+    false_negatives = recovered_non_edges & true_edges
+
+    # were not able to rule out edge, but it doesn't exist in graph
+    false_positives = round(len(recovered_non_edges) / len(true_non_edges) * 100, 2)
+    
+    print(f"Will be set() if correct conditions for non-edges: {false_negatives},\nTotal Non-Edge Recovery: {false_positives}%")
+
+
 def plot_recovery_vs_cascades(G: TestGraph, M_values: list[int]):
     true_non_edges = set(nx.non_edges(G.G))
-    max_M = max(M_values)
-    M_set = set(M_values)
 
-    all_cascades = generate_cascades(G, max_M)
-    recovered = set()
-    recovery_rates = {}
-
-    for i, cascade in enumerate(all_cascades):
-        recovered.update(get_certified_non_edges_from_cascade(cascade[0], cascade[1]))
-        if (i + 1) in M_set:
-            recovery_rates[i + 1] = len(recovered) / len(true_non_edges) * 100
-        if recovered >= true_non_edges:
-            for M in M_values:
-                if M not in recovery_rates:
-                    recovery_rates[M] = 100.0
-            break
-
-    rates = [recovery_rates.get(M, 100.0) for M in M_values]
+    rates = []
+    for M in M_values:
+        recovered = recover_non_edges(G, M)
+        rate = len(recovered) / len(true_non_edges) * 100
+        rates.append(rate)
+        print(f"M={M}: {rate:.2f}%")
 
     plt.figure(figsize=(10, 6))
     plt.plot(M_values, rates, marker='o')
