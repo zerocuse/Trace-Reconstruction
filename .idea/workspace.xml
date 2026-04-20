@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c13ab8da-20e9-4b77-873d-38111bb6fbf4" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/LinearThresholdModel/graphs.py" beforeDir="false" afterPath="$PROJECT_DIR$/LinearThresholdModel/graphs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/LinearThresholdModel/solver.py" beforeDir="false" afterPath="$PROJECT_DIR$/LinearThresholdModel/solver.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -13,9 +12,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="3A2Cg0S7Abtgo2FLSNsMvyRU61d" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -26,7 +25,8 @@
     "Python.graphs.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main"
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "C:/Users/Zacha/Downloads/exercise"
   }
 }]]></component>
   <component name="SharedIndexes">

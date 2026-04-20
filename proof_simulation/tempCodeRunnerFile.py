@@ -1,0 +1,1 @@
+print(nx.nodes(lm))

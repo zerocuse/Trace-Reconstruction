@@ -69,16 +69,24 @@ def cascade(g0: testGraph) -> tuple[np.ndarray, bool]:
 # T -> Time Steps (number of the cascade step)
 # M -> Total cascade amount
 
-def generate_cascade_sequence(g0: testGraph, M: int) -> np.ndarray:
+def generate_cascade_sequence(g0: testGraph, M: int) -> list:
+    all_cascades = []
     
-    infection_matrix = [g0.x0.copy()]
-    for i in range(M):
-        x_new, updated = cascade(g0)
-        if not updated:
-            break
-        infection_matrix.append(x_new.copy())
+    for _ in range(M):
+        
+        # Random seed for this cascade
+        g0.x = np.random.randint(0, 2, size=g0.n)
+        cascade_matrix = [g0.x.copy()]
+        
+        while True:
+            x_new, updated = cascade(g0)
+            if not updated:
+                break
+            cascade_matrix.append(x_new.copy())
+        
+        all_cascades.append(np.array(cascade_matrix))
     
-    return np.array(infection_matrix)
+    return all_cascades
 
 
 
@@ -121,7 +129,7 @@ def count_contradicitons(g: testGraph, x_guess: np.ndarray) -> np.ndarray:
     contradictions = np.zeros(g.n)
     
     for i in range(g.n):
-        infected_neighbors = sum(1 for node in g.current.neighbors(i) if x_guess[j] == 1)
+        infected_neighbors = sum(1 for node in g.current.neighbors(i) if x_guess[node] == 1)
         
         # xhat thinks its infected when it shouldnt be
         if (x_guess[i] == 1) and (infected_neighbors < g.b[i]):
@@ -147,7 +155,7 @@ def greedy_ltm_solver(g: testGraph, x_guess: np.ndarray, max_steps: int=1000):
         total = np.sum(contradictions)
         
         if total == 0:
-            return x_guess
+            return x
         
         best_reduction = 0
         best_node = None
